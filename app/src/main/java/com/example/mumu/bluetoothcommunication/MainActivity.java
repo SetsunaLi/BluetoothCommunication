@@ -1,9 +1,8 @@
 package com.example.mumu.bluetoothcommunication;
 
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.LayoutRes;
 import android.support.annotation.NonNull;
@@ -12,7 +11,6 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -24,7 +22,6 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.inuker.bluetooth.library.BluetoothClient;
 import com.inuker.bluetooth.library.connect.listener.BleConnectStatusListener;
 import com.inuker.bluetooth.library.connect.options.BleConnectOptions;
 import com.inuker.bluetooth.library.connect.response.BleConnectResponse;
@@ -45,6 +42,7 @@ import java.util.UUID;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
+import butterknife.OnClick;
 
 import static com.inuker.bluetooth.library.Constants.REQUEST_SUCCESS;
 import static com.inuker.bluetooth.library.Constants.STATUS_CONNECTED;
@@ -53,12 +51,13 @@ public class MainActivity extends AppCompatActivity {
 
     @Bind(R.id.list)
     ListView list;
-    private ArrayList<SearchResult> mDevices=new ArrayList<>();
+    private ArrayList<SearchResult> mDevices = new ArrayList<>();
     private MyAdapter mAdapter;
-    private String MAC="";
+    private String MAC = "";
     private SearchResult mResult;
     private BluetoothDevice mDevice;
     private boolean mConnected;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -76,7 +75,7 @@ public class MainActivity extends AppCompatActivity {
                         .setAction("Action", null).show();
             }
         });
-        mAdapter=new MyAdapter(getBaseContext(),R.layout.list_item,mDevices);
+        mAdapter = new MyAdapter(getBaseContext(), R.layout.list_item, mDevices);
         list.setAdapter(mAdapter);
         list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -84,16 +83,17 @@ public class MainActivity extends AppCompatActivity {
               /*  if (!mConnected) {
                     return;
                 }*/
-                MAC=mDevices.get(i).getAddress();
-                mResult=mDevices.get(i);
-                mDevice= BluetoothUtils.getRemoteDevice(MAC);
-                ClientManager.getClient().registerConnectStatusListener(MAC,mConnectStatusListener);
+                MAC = mDevices.get(i).getAddress();
+                mResult = mDevices.get(i);
+                mDevice = BluetoothUtils.getRemoteDevice(MAC);
+                ClientManager.getClient().registerConnectStatusListener(MAC, mConnectStatusListener);
                 connectDeviceIfNeeded();
 
             }
         });
         search();
     }
+
     private final BleConnectStatusListener mConnectStatusListener = new BleConnectStatusListener() {
         @Override
         public void onConnectStatusChanged(String mac, int status) {
@@ -131,7 +131,8 @@ public class MainActivity extends AppCompatActivity {
             BluetoothLog.w("MainActivity.onSearchCanceled");
         }
     };
-//扫描设备
+
+    //扫描设备
     public void search() {
         SearchRequest request = new SearchRequest.Builder()
                 .searchBluetoothLeDevice(3000, 3)
@@ -140,35 +141,37 @@ public class MainActivity extends AppCompatActivity {
                 .build();
         ClientManager.getClient().search(request, mSearchResponse);
     }
+
     //    停止蓝牙扫描
     public void stopSearch() {
         if (ClientManager.getClient() != null)
             ClientManager.getClient().stopSearch();
     }
+
     //     BLE设备连接 (开启蓝牙扫描 连接，使用已知的 MAC 地址)
     public void connectDevice(String MAC) {
-        BleConnectOptions options=new BleConnectOptions.Builder()
+        BleConnectOptions options = new BleConnectOptions.Builder()
                 .setConnectRetry(3)//重连3次
                 .setConnectTimeout(5000)//5秒后为连接超时
                 .setServiceDiscoverRetry(3)//连接Servicec重试3次
                 .setServiceDiscoverTimeout(10000)//5s后连接服务超时
                 .build();
-            ClientManager.getClient().connect(MAC, options,new BleConnectResponse() {
-                @Override
-                public void onResponse(int code, BleGattProfile data) {
-                    BluetoothLog.v(String.format("profile:\n%s", data));
+        ClientManager.getClient().connect(MAC, options, new BleConnectResponse() {
+            @Override
+            public void onResponse(int code, BleGattProfile data) {
+                BluetoothLog.v(String.format("profile:\n%s", data));
 //                    链接监听
 //                    mListView.setVisibility(View.VISIBLE);
 
-                    if (code == REQUEST_SUCCESS) {
+                if (code == REQUEST_SUCCESS) {
 //                        mAdapter.setGattProfile(data);
 //                        连接成功
-                        Toast.makeText(getBaseContext(),"Success",Toast.LENGTH_SHORT);
-                        return;
-                    }
-                    Toast.makeText(getBaseContext(),"false",Toast.LENGTH_SHORT);
+                    Toast.makeText(getBaseContext(), "Success", Toast.LENGTH_SHORT);
+                    return;
                 }
-            });
+                Toast.makeText(getBaseContext(), "false", Toast.LENGTH_SHORT);
+            }
+        });
     }
 
     //    BLE设备断开连接
@@ -251,6 +254,7 @@ public class MainActivity extends AppCompatActivity {
             connectDevice(MAC);
         }
     }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -277,7 +281,21 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         ClientManager.getClient().disconnect(MAC);
-        ClientManager.getClient().unregisterConnectStatusListener(MAC,mConnectStatusListener);
+        ClientManager.getClient().unregisterConnectStatusListener(MAC, mConnectStatusListener);
+    }
+
+    @OnClick({R.id.button, R.id.button2})
+    public void onViewClicked(View view) {
+        switch (view.getId()) {
+            case R.id.button:
+                Intent intent = new Intent(this, BluetoothServerActivity.class);
+                startActivity(intent);
+                break;
+            case R.id.button2:
+                Intent intent2 = new Intent(this, BluetoothClintActivity.class);
+                startActivity(intent2);
+                break;
+        }
     }
 
     class MyAdapter extends ArrayAdapter<SearchResult> {
@@ -289,6 +307,7 @@ public class MainActivity extends AppCompatActivity {
             this.list = objects;
             this.mInflater = LayoutInflater.from(context);
         }
+
         @Override
         public synchronized void add(@Nullable SearchResult object) {
             super.add(object);
@@ -306,9 +325,10 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 viewHolder = (ViewHolder) convertView.getTag();
             }
-            viewHolder.item1.setText("Name:"+list.get(position).getName()+"\\Rssi:"+list.get(position).rssi+"\n\tMAC:"+list.get(position).getAddress());
+            viewHolder.item1.setText("Name:" + list.get(position).getName() + "\\Rssi:" + list.get(position).rssi + "\n\tMAC:" + list.get(position).getAddress());
             return convertView;
         }
+
         class ViewHolder {
             TextView item1;
         }

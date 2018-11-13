@@ -20,7 +20,7 @@ public class MyApplication extends Application {
     public void onCreate() {
         super.onCreate();
         instance = this;
-        BluetoothContext.set(this);
+//        BluetoothContext.set(this);
 
     }
 }
